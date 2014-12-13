@@ -14,23 +14,15 @@ class PHPSerial
 	protected $_buffer = '';
 	
 	/**
-	 * This var says if buffer should be flushed by sendMessage (true) or
+	 * This var says if buffer should be flushed by send (true) or
 	 * manually (false)
 	 *
 	 * @var bool
 	 */
-	protected $_autoFlush = true;
+	protected $_auto_flush = true;
 	
 	protected $_os = '';
 
-	/**
-	* This var says if buffer should be flushed by sendMessage (true) or
-	* manually (false)
-	*
-	* @var bool
-	*/
-	public $autoFlush = true;
-	
 	public function __construct($device = NULL, $rate=9600)
 	{
 		$sysName = substr(php_uname(), 0, 4);

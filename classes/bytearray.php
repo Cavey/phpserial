@@ -134,6 +134,24 @@ class bytearray
 		return $this;
 	}
 	/**
+	 * 
+	 * @param integer $id
+	 * @param string|integer $value
+	 * @return \bytearray
+	 */
+	public function set_byte($id,$value)
+	{
+		if(is_string($value))
+		{
+			$value = hexdec($value);
+		}
+		if(is_numeric($value))
+		{
+			$this->_data[$id] = $value;
+		}
+		return $this;
+	}
+	/**
 	 * Replaces the parity byte having updated info in the bytearray
 	 * @return \bytearray
 	 */
