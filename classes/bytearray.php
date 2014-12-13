@@ -19,7 +19,7 @@ class bytearray
 	protected $__data;
 	
 	//put your code here
-	public function __construct($v=null)
+	public function __construct($v=NULL)
 	{
 		if($v == null)
 		{
@@ -33,6 +33,16 @@ class bytearray
 		{
 			$this->from_dec($v);
 		}
+	}
+	/**
+	 * Factory for generating a bytearray
+	 * @param mixed $v
+	 * @return \bytearray
+	 */
+	public static function factory($v = NULL)
+	{
+		$bytearray = new bytearray($v);
+		return $bytearray;
 	}
 	/**
 	 * 
