@@ -8,9 +8,11 @@ class PHPSerial
 	
 	protected $__device = null;
     protected $__winDevice = null;
+    protected $__rate = null;
 	protected $__dHandle = null;
 	protected $__dState = self::SERIAL_DEVICE_NOTSET;
 	protected $__buffer = '';
+	
 	/**
 	 * This var says if buffer should be flushed by sendMessage (true) or
 	 * manually (false)
@@ -29,10 +31,10 @@ class PHPSerial
 	*/
 	public $autoFlush = true;
 	
-	public function __construct($device = NULL)
+	public function __construct($device = NULL, $rate=9600)
 	{
-		$sysName = php_uname();
-		if (substr($sysName, 0, 5) === 'Linux') 
+		$sysName = substr(php_uname(), 0, 4);
+		if ($sysName == 'Linu') 
 		{
 			$this->__os = 'linux';
 			if ($this->__exec('stty') === 0) 
@@ -44,12 +46,12 @@ class PHPSerial
 				throw new Kohana_Exception('No stty availible, unable to run.',E_USER_ERROR);
 			}
 		} 
-		elseif (substr($sysName, 0, 6) === 'Darwin') 
+		elseif ($sysName === 'Darw') 
 		{
 			$this->__os = 'osx';
 			register_shutdown_function(array($this, 'close'));
 		} 
-		elseif (substr($sysName, 0, 7) === 'Windows') 
+		elseif ($sysName === 'Wind') 
 		{
 			$this->__os = 'windows';
 			register_shutdown_function(array($this, 'close'));
@@ -57,11 +59,10 @@ class PHPSerial
 		else 
 		{
 			throw new Kohana_Exception('Host OS is neither osx, linux nor windows, unable to run.', E_USER_ERROR);
-			exit();
 		}
 		if($device != NULL)
 		{
-			$this->set_device($device);
+			$this->set_device($device, $rate);
 		}
 	}
 	//
@@ -69,67 +70,86 @@ class PHPSerial
 	//
 
 	/**
-	 * Device set function : used to set the device name/address.
-	 * -> linux : use the device address, like /dev/ttyS0
-	 * -> osx : use the device address, like /dev/tty.serial
-	 * -> windows : use the COMxx device name, like COM1 (can also be used
-	 *     with linux)
+	 * Valid formats are
+	 *		/dev/ttyYYYxxx (recommended, default for Linux)
+	 *		COMxx (default for Windows)
+	 * 
+	 * Internal code should make it cross-platform.
 	 *
-	 * @param  string $device the name of the device to be used
+	 * @param mixed $device the identifier of the device to be used
 	 * @return bool
 	 */
-	public function set_device($device)
+	public function set_device($device, $rate=NULL)
 	{
 		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
 		{
-			if ($this->__os === 'linux') 
+			$sd = 'S';
+			$id = NULL;
+			if (is_numeric($device))
 			{
-				if (preg_match('@^COM(\\d+):?$@i', $device, $matches)) 
-				{
-					$device = '/dev/ttyS' . ($matches[1] - 1);
-				}
-
-				if ($this->__exec('stty -F ' . $device) === 0) 
-				{
-					$this->__device = $device;
-					$this->__dState = self::SERIAL_DEVICE_SET;
-
-					return true;
-				}
-			} 
-			elseif ($this->__os === 'osx') 
-			{
-				if ($this->__exec('stty -f ' . $device) === 0) 
-				{
-					$this->__device = $device;
-					$this->__dState = self::SERIAL_DEVICE_SET;
-
-					return true;
-				}
-			} 
-			elseif ($this->__os === 'windows') 
-			{
-				if (preg_match('@^COM(\\d+):?$@i', $device, $matches)
-						and $this->__exec(
-							exec('mode ' . $device . ' xon=on BAUD=9600')
-						) === 0 ) 
-				{
-					$this->_winDevice = 'COM' . $matches[1];
-					$this->__device = '\\.com' . $matches[1];
-					$this->__dState = self::SERIAL_DEVICE_SET;
-
-					return true;
-				}
+				$id = $device;
 			}
+			else if (preg_match('@^COM(\\d+):?$@i', $device, $matches)) 
+			{
+				// Format is COMxx
+				$id = $matches[1];
+			}
+			else if (preg_match('@^/dev/tty([A-Z]+)(\\d+)/?$@i', $device, $matches)) 
+			{
+				// Format is /dev/ttyYYYxx
+				// YYY might be S or ACM or similar
+				$sd = $matches[1];
+				$id = $matches[2];
+			}
+			
+			switch($this->__os)
+			{
+				case 'osx':
+					$device = '/dev/tty.serial';
+					break;
+				case 'linux':
+					$device = '/dev/tty'.$sd.$id;
+					break;
+				case 'windows':
+					$device = 'COM'.$id;
+					break;
+			}
+			switch($this->__os)
+			{
+				case 'windows':
+					if($rate == NULL) $rate=9600;
+					if ($this->__exec('mode ' . $device . ' xon=on BAUD='.$rate)
+							 === 0 ) 
+					{
+						$this->__winDevice = $device;
+						$this->__device = '\\.com' . $id;
+						$this->__dState = self::SERIAL_DEVICE_SET;
+					}
+					else 
+					{
+						throw new Kohana_Exception('Specified serial port is not valid.', array());		
+					}
+				default:
+					if ($this->__exec('stty -F ' . $device) === 0) 
+					{
+						$this->__device = $device;
+						$this->__dState = self::SERIAL_DEVICE_SET;
 
-			throw new Kohana_Exception('Specified serial port is not valid', array());
-
-			return false;
+					}
+					else 
+					{
+						throw new Kohana_Exception('Specified serial port is not valid. Check stty is available', array());		
+					}
+					break;
+			}
+			if( $rate !== NULL)
+			{
+				$this->set_baud_rate($rate);
+			}
 		} 
 		else 
 		{
-			throw new Kohana_Exception('You must close your device before to set an other ' .
-						  'one', array());
+			throw new Kohana_Exception('You must close the device or create another one', array());
 			return false;
 		}
 	}
@@ -224,7 +244,7 @@ class PHPSerial
 			return false;
 		}
 
-		$validBauds = array (
+		$valid_bauds = array (
 			110    => 11,
 			150    => 15,
 			300    => 30,
@@ -239,34 +259,24 @@ class PHPSerial
 			115200 => 115200
 		);
 
-		if (isset($validBauds[$rate])) 
+		if (isset($valid_bauds[$rate])) 
 		{
-			if ($this->__os === 'linux') 
+			switch($this->__os)
 			{
-				$ret = $this->__exec(
-					'stty -F ' . $this->__device . ' ' . (int) $rate,
-					$out
-				);
-			} 
-			elseif ($this->__os === 'osx') 
-			{
-				$ret = $this->__exec(
-					'stty -f ' . $this->__device . ' ' . (int) $rate,
-					$out
-				);
-			} 
-			elseif ($this->__os === 'windows') 
-			{
-				$ret = $this->__exec(
-					'mode ' . $this->_winDevice . ' BAUD=' . $validBauds[$rate],
-					$out
-				);
-			} 
-			else 
-			{
-				return false;
+				case 'windows':
+					$ret = $this->__exec(
+						'mode ' . $this->_winDevice . ' BAUD=' . $valid_bauds[$rate],
+						$out
+					);
+					break;
+				case 'osx':
+				case 'linux':
+					$ret = $this->__exec(
+						'stty -F ' . $this->__device . ' ' . (int) $rate,
+						$out
+					);
+					break;
 			}
-
 			if ($ret !== 0) 
 			{
 				throw new Kohana_Exception(
@@ -275,11 +285,14 @@ class PHPSerial
 				);
 				return false;
 			}
-
 			return true;
 		} 
 		else 
 		{
+			throw new Kohana_Exception(
+				'Invalid baud rate :rate specified',
+				array('rate'=>$rate)
+			);
 			return false;
 		}
 	}
@@ -553,7 +566,7 @@ class PHPSerial
 			return false;
 		}
 
-		$return = exec(
+		$return = $this->__exec(
 			'setserial ' . $this->__device . ' ' . $param . ' ' . $arg . ' 2>&1'
 		);
 
@@ -565,7 +578,6 @@ class PHPSerial
 		elseif ($return{0} === '/') 
 		{
 			throw new Kohana_Exception('setserial: Error with device file', array());
-
 			return false;
 		} 
 		else 
@@ -596,8 +608,8 @@ class PHPSerial
 		{
 			$this->flush_serial();
 		}
-
 		usleep((int) ($waitForReply * 1000000));
+		return true;
 	}
 
 	/**
@@ -609,9 +621,9 @@ class PHPSerial
 	 */
 	public function readPort($count = 0)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) {
+		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
+		{
 			throw new Kohana_Exception('Device must be opened to read it', array());
-
 			return false;
 		}
 
@@ -694,7 +706,6 @@ class PHPSerial
 		if (fwrite($this->__dHandle, $this->__buffer) !== false) 
 		{
 			$this->__buffer = '';
-
 			return true;
 		} 
 		else 
@@ -764,5 +775,4 @@ class PHPSerial
 	//
 	// INTERNAL TOOLKIT -- {STOP}
 	//
-
 }
