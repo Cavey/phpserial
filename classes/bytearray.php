@@ -16,7 +16,7 @@ class bytearray
 	 * Where the data is stored internally
 	 * @var array 
 	 */
-	protected $__data;
+	protected $_data;
 	
 	//put your code here
 	public function __construct($v=NULL)
@@ -51,7 +51,7 @@ class bytearray
 	 */
 	public function from_hex($hex)
 	{
-		$this->__data  = unpack("C*", pack("H*", $hex));
+		$this->_data  = unpack("C*", pack("H*", $hex));
 		return $this;
 	}
 	/**
@@ -61,7 +61,7 @@ class bytearray
 	 */
 	public function from_dec($arr)
 	{
-		$this->__data  = $arr;
+		$this->_data  = $arr;
 		return $this;
 	}
 	/**
@@ -71,7 +71,7 @@ class bytearray
 	 */
 	public function from_bin($bin)
 	{
-		$this->__data  = unpack("C*", $bin);
+		$this->_data  = unpack("C*", $bin);
 		return $this;
 	}
 	/**
@@ -91,7 +91,7 @@ class bytearray
 		$str;
 		foreach($this->data as $d)
 		{
-			$str .= dechex($d);
+			$str .= str_pad(dechex($d), 2, '0', STR_PAD_LEFT);
 		}
 		return $str;
 	}
@@ -105,7 +105,7 @@ class bytearray
 	 */
 	public function as_array()
 	{
-		return $this->__data;
+		return $this->_data;
 	}
 	/**
 	 * Use to add another bytearray, either as a hex string, array of decimals
@@ -124,11 +124,11 @@ class bytearray
 		{
 			$add = $add->as_array();
 		}
-		foreach($this->__data as $key => $val)
+		foreach($this->_data as $key => $val)
 		{
 			if(isset($add[$key]))
 			{
-				$this->__data[$key] += $add[$key];
+				$this->_data[$key] += $add[$key];
 			}
 		}
 		return $this;
@@ -148,11 +148,11 @@ class bytearray
 	public function append_parity()
 	{
 		$parity = 0;
-		foreach($this->__data as $d)
+		foreach($this->_data as $d)
 		{
 			$parity ^= $d;
 		}
-		$this->__data[] = $parity;
+		$this->_data[] = $parity;
 		return $this;
 	}
 	/**
@@ -161,7 +161,7 @@ class bytearray
 	 */
 	public function remove_parity()
 	{
-		unset($this->__data[count($this->data)]);
+		unset($this->_data[count($this->data)]);
 		return $this;
 	}
 }

@@ -6,12 +6,12 @@ class PHPSerial
 	const SERIAL_DEVICE_SET = 1;
 	const SERIAL_DEVICE_OPENED = 2;
 	
-	protected $__device = null;
-    protected $__winDevice = null;
-    protected $__rate = null;
-	protected $__dHandle = null;
-	protected $__dState = self::SERIAL_DEVICE_NOTSET;
-	protected $__buffer = '';
+	protected $_device = null;
+    protected $_winDevice = null;
+    protected $_rate = null;
+	protected $_dHandle = null;
+	protected $_dState = self::SERIAL_DEVICE_NOTSET;
+	protected $_buffer = '';
 	
 	/**
 	 * This var says if buffer should be flushed by sendMessage (true) or
@@ -19,9 +19,9 @@ class PHPSerial
 	 *
 	 * @var bool
 	 */
-	protected $__autoFlush = true;
+	protected $_autoFlush = true;
 	
-	protected $__os = '';
+	protected $_os = '';
 
 	/**
 	* This var says if buffer should be flushed by sendMessage (true) or
@@ -36,8 +36,8 @@ class PHPSerial
 		$sysName = substr(php_uname(), 0, 4);
 		if ($sysName == 'Linu') 
 		{
-			$this->__os = 'linux';
-			if ($this->__exec('stty') === 0) 
+			$this->_os = 'linux';
+			if ($this->_exec('stty') === 0) 
 			{
 				register_shutdown_function(array($this, 'close'));
 			} 
@@ -48,12 +48,12 @@ class PHPSerial
 		} 
 		elseif ($sysName === 'Darw') 
 		{
-			$this->__os = 'osx';
+			$this->_os = 'osx';
 			register_shutdown_function(array($this, 'close'));
 		} 
 		elseif ($sysName === 'Wind') 
 		{
-			$this->__os = 'windows';
+			$this->_os = 'windows';
 			register_shutdown_function(array($this, 'close'));
 		} 
 		else 
@@ -81,7 +81,7 @@ class PHPSerial
 	 */
 	public function set_device($device, $rate=NULL)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
+		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) 
 		{
 			$sd = 'S';
 			$id = NULL;
@@ -102,7 +102,7 @@ class PHPSerial
 				$id = $matches[2];
 			}
 			
-			switch($this->__os)
+			switch($this->_os)
 			{
 				case 'osx':
 					$device = '/dev/tty.serial';
@@ -114,26 +114,26 @@ class PHPSerial
 					$device = 'COM'.$id;
 					break;
 			}
-			switch($this->__os)
+			switch($this->_os)
 			{
 				case 'windows':
 					if($rate == NULL) $rate=9600;
-					if ($this->__exec('mode ' . $device . ' xon=on BAUD='.$rate)
+					if ($this->_exec('mode ' . $device . ' xon=on BAUD='.$rate)
 							 === 0 ) 
 					{
-						$this->__winDevice = $device;
-						$this->__device = '\\.com' . $id;
-						$this->__dState = self::SERIAL_DEVICE_SET;
+						$this->_winDevice = $device;
+						$this->_device = '\\.com' . $id;
+						$this->_dState = self::SERIAL_DEVICE_SET;
 					}
 					else 
 					{
 						throw new Kohana_Exception('Specified serial port is not valid.', array());		
 					}
 				default:
-					if ($this->__exec('stty -F ' . $device) === 0) 
+					if ($this->_exec('stty -F ' . $device) === 0) 
 					{
-						$this->__device = $device;
-						$this->__dState = self::SERIAL_DEVICE_SET;
+						$this->_device = $device;
+						$this->_dState = self::SERIAL_DEVICE_SET;
 
 					}
 					else 
@@ -162,13 +162,13 @@ class PHPSerial
 	 */
 	public function open($mode = 'r+b')
 	{
-		if ($this->__dState === self::SERIAL_DEVICE_OPENED) 
+		if ($this->_dState === self::SERIAL_DEVICE_OPENED) 
 		{
 			// We don't throw an exception here because that would be stupid
 			return true;
 		}
 
-		if ($this->__dState === self::SERIAL_DEVICE_NOTSET) 
+		if ($this->_dState === self::SERIAL_DEVICE_NOTSET) 
 		{
 			throw new Kohana_Exception( 'The device must be set before to be open',	array());
 			return false;
@@ -180,16 +180,16 @@ class PHPSerial
 			return false;
 		}
 
-		$this->__dHandle = @fopen($this->__device, $mode);
+		$this->_dHandle = @fopen($this->_device, $mode);
 
-		if ($this->__dHandle !== false) 
+		if ($this->_dHandle !== false) 
 		{
-			stream_set_blocking($this->__dHandle, 0);
-			$this->__dState = self::SERIAL_DEVICE_OPENED;
+			stream_set_blocking($this->_dHandle, 0);
+			$this->_dState = self::SERIAL_DEVICE_OPENED;
 			return true;
 		}
 
-		$this->__dHandle = null;
+		$this->_dHandle = null;
 		throw new Kohana_Exception('Unable to open the device', array());
 
 		return false;
@@ -202,15 +202,15 @@ class PHPSerial
 	 */
 	public function close()
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
+		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) 
 		{
 			return true;
 		}
 
-		if (fclose($this->__dHandle)) 
+		if (fclose($this->_dHandle)) 
 		{
-			$this->__dHandle = null;
-			$this->__dState = self::SERIAL_DEVICE_SET;
+			$this->_dHandle = null;
+			$this->_dState = self::SERIAL_DEVICE_SET;
 			return true;
 		}
 
@@ -237,7 +237,7 @@ class PHPSerial
 	 */
 	public function set_baud_rate($rate)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_SET) 
+		if ($this->_dState !== self::SERIAL_DEVICE_SET) 
 		{
 			throw new Kohana_Exception('Unable to set the baud rate : the device is ' .
 						  'either not set or opened', array());
@@ -261,18 +261,18 @@ class PHPSerial
 
 		if (isset($valid_bauds[$rate])) 
 		{
-			switch($this->__os)
+			switch($this->_os)
 			{
 				case 'windows':
-					$ret = $this->__exec(
+					$ret = $this->_exec(
 						'mode ' . $this->_winDevice . ' BAUD=' . $valid_bauds[$rate],
 						$out
 					);
 					break;
 				case 'osx':
 				case 'linux':
-					$ret = $this->__exec(
-						'stty -F ' . $this->__device . ' ' . (int) $rate,
+					$ret = $this->_exec(
+						'stty -F ' . $this->_device . ' ' . (int) $rate,
 						$out
 					);
 					break;
@@ -306,7 +306,7 @@ class PHPSerial
 	 */
 	public function set_parity($parity)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_SET) {
+		if ($this->_dState !== self::SERIAL_DEVICE_SET) {
 			throw new Kohana_Exception(
 				'Unable to set parity : the device is either not set or opened',
 				array()
@@ -327,23 +327,23 @@ class PHPSerial
 			return false;
 		}
 
-		if ($this->__os === 'linux') 
+		if ($this->_os === 'linux') 
 		{
-			$ret = $this->__exec(
-				'stty -F ' . $this->__device . ' ' . $args[$parity],
+			$ret = $this->_exec(
+				'stty -F ' . $this->_device . ' ' . $args[$parity],
 				$out
 			);
 		} 
-		elseif ($this->__os === 'osx') 
+		elseif ($this->_os === 'osx') 
 		{
-			$ret = $this->__exec(
-				'stty -f ' . $this->__device . ' ' . $args[$parity],
+			$ret = $this->_exec(
+				'stty -f ' . $this->_device . ' ' . $args[$parity],
 				$out
 			);
 		} 
 		else 
 		{
-			$ret = $this->__exec(
+			$ret = $this->_exec(
 				'mode ' . $this->_winDevice . ' PARITY=' . $parity{0},
 				$out
 			);
@@ -366,7 +366,7 @@ class PHPSerial
 	 */
 	public function set_character_length($int)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_SET) 
+		if ($this->_dState !== self::SERIAL_DEVICE_SET) 
 		{
 			throw new Kohana_Exception('Unable to set length of a character : the device is either not set or opened', array());
 			return false;
@@ -382,23 +382,23 @@ class PHPSerial
 			$int = 8;
 		}
 
-		if ($this->__os === 'linux') 
+		if ($this->_os === 'linux') 
 		{
-			$ret = $this->__exec(
-				'stty -F ' . $this->__device . ' cs' . $int,
+			$ret = $this->_exec(
+				'stty -F ' . $this->_device . ' cs' . $int,
 				$out
 			);
 		} 
-		elseif ($this->__os === 'osx') 
+		elseif ($this->_os === 'osx') 
 		{
-			$ret = $this->__exec(
-				'stty -f ' . $this->__device . ' cs' . $int,
+			$ret = $this->_exec(
+				'stty -f ' . $this->_device . ' cs' . $int,
 				$out
 			);
 		} 
 		else 
 		{
-			$ret = $this->__exec(
+			$ret = $this->_exec(
 				'mode ' . $this->_winDevice . ' DATA=' . $int,
 				$out
 			);
@@ -427,7 +427,7 @@ class PHPSerial
 	 */
 	public function set_stop_bits($length)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_SET) {
+		if ($this->_dState !== self::SERIAL_DEVICE_SET) {
 			throw new Kohana_Exception('Unable to set the length of a stop bit : the ' .
 						  'device is either not set or opened', array());
 
@@ -437,7 +437,7 @@ class PHPSerial
 		if ($length != 1
 				&& $length != 2
 				&& $length != 1.5
-				&& !($length == 1.5 and $this->__os === 'linux')
+				&& !($length == 1.5 and $this->_os === 'linux')
 			) 
 		{
 			throw new Kohana_Exception(
@@ -448,25 +448,25 @@ class PHPSerial
 			return false;
 		}
 
-		if ($this->__os === 'linux') 
+		if ($this->_os === 'linux') 
 		{
-			$ret = $this->__exec(
-				'stty -F ' . $this->__device . ' ' .
+			$ret = $this->_exec(
+				'stty -F ' . $this->_device . ' ' .
 					(($length == 1) ? '-' : '') . 'cstopb',
 				$out
 			);
 		} 
-		elseif ($this->__os === 'osx') 
+		elseif ($this->_os === 'osx') 
 		{
-			$ret = $this->__exec(
-				'stty -f ' . $this->__device . ' ' .
+			$ret = $this->_exec(
+				'stty -f ' . $this->_device . ' ' .
 					(($length == 1) ? '-' : '') . 'cstopb',
 				$out
 			);
 		} 
 		else 
 		{
-			$ret = $this->__exec(
+			$ret = $this->_exec(
 				'mode ' . $this->_winDevice . ' STOP=' . $length,
 				$out
 			);
@@ -496,7 +496,7 @@ class PHPSerial
 	 */
 	public function set_flow_control($mode)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_SET) {
+		if ($this->_dState !== self::SERIAL_DEVICE_SET) {
 			throw new Kohana_Exception('Unable to set flow control mode : the device is ' .
 						  'either not set or opened', array());
 
@@ -520,18 +520,18 @@ class PHPSerial
 			return false;
 		}
 
-		if ($this->__os === 'linux') {
-			$ret = $this->__exec(
-				'stty -F ' . $this->__device . ' ' . $linuxModes[$mode],
+		if ($this->_os === 'linux') {
+			$ret = $this->_exec(
+				'stty -F ' . $this->_device . ' ' . $linuxModes[$mode],
 				$out
 			);
-		} elseif ($this->__os === 'osx') {
-			$ret = $this->__exec(
-				'stty -f ' . $this->__device . ' ' . $linuxModes[$mode],
+		} elseif ($this->_os === 'osx') {
+			$ret = $this->_exec(
+				'stty -f ' . $this->_device . ' ' . $linuxModes[$mode],
 				$out
 			);
 		} else {
-			$ret = $this->__exec(
+			$ret = $this->_exec(
 				'mode ' . $this->_winDevice . ' ' . $windowsModes[$mode],
 				$out
 			);
@@ -561,13 +561,13 @@ class PHPSerial
 	 */
 	public function set_serial_flag($param, $arg = '')
 	{
-		if (!$this->__ckOpened()) 
+		if (!$this->_ckOpened()) 
 		{
 			return false;
 		}
 
-		$return = $this->__exec(
-			'setserial ' . $this->__device . ' ' . $param . ' ' . $arg . ' 2>&1'
+		$return = $this->_exec(
+			'setserial ' . $this->_device . ' ' . $param . ' ' . $arg . ' 2>&1'
 		);
 
 		if ($return{0} === 'I') 
@@ -602,9 +602,9 @@ class PHPSerial
 	 */
 	public function send($str, $waitForReply = 0.1)
 	{
-		$this->__buffer .= $str;
+		$this->_buffer .= $str;
 
-		if ($this->__autoFlush === true) 
+		if ($this->_auto_flush === true) 
 		{
 			$this->flush_serial();
 		}
@@ -621,13 +621,13 @@ class PHPSerial
 	 */
 	public function read($count = 0)
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
+		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) 
 		{
 			throw new Kohana_Exception('Device must be opened to read it', array());
 			return false;
 		}
 
-		if ($this->__os === 'linux' || $this->__os === 'osx') {
+		if ($this->_os === 'linux' || $this->_os === 'osx') {
 			// Behavior in OSX isn't to wait for new data to recover, but just
 			// grabs what's there!
 			// Doesn't always work perfectly for me in OSX
@@ -639,11 +639,11 @@ class PHPSerial
 				{
 					if ($i > $count) 
 					{
-						$content .= fread($this->__dHandle, ($count - $i));
+						$content .= fread($this->_dHandle, ($count - $i));
 					} 
 					else 
 					{
-						$content .= fread($this->__dHandle, 128);
+						$content .= fread($this->_dHandle, 128);
 					}
 				}
 			} 
@@ -651,13 +651,13 @@ class PHPSerial
 			{
 				while (($i += 128) === strlen($content))
 				{
-					$content .= fread($this->__dHandle, 128);
+					$content .= fread($this->_dHandle, 128);
 				} 
 			}
 
 			return $content;
 		} 
-		elseif ($this->__os === 'windows') 
+		elseif ($this->_os === 'windows') 
 		{
 			// Windows port reading procedures still buggy
 			$content = ''; $i = 0;
@@ -668,11 +668,11 @@ class PHPSerial
 				{
 					if ($i > $count) 
 					{
-						$content .= fread($this->__dHandle, ($count - $i));
+						$content .= fread($this->_dHandle, ($count - $i));
 					} 
 					else 
 					{
-						$content .= fread($this->__dHandle, 128);
+						$content .= fread($this->_dHandle, 128);
 					}
 				}
 			} 
@@ -680,7 +680,7 @@ class PHPSerial
 			{
 				while (($i += 128) === strlen($content)) 
 				{
-					$content .= fread($this->__dHandle, 128);
+					$content .= fread($this->_dHandle, 128);
 				} 
 			}
 
@@ -698,19 +698,19 @@ class PHPSerial
 	 */
 	public function flush_serial()
 	{
-		if (!$this->__ckOpened()) 
+		if (!$this->_ckOpened()) 
 		{
 			return false;
 		}
 
-		if (fwrite($this->__dHandle, $this->__buffer) !== false) 
+		if (fwrite($this->_dHandle, $this->_buffer) !== false) 
 		{
-			$this->__buffer = '';
+			$this->_buffer = '';
 			return true;
 		} 
 		else 
 		{
-			$this->__buffer = '';
+			$this->_buffer = '';
 			throw new Kohana_Exception('Error while sending message', array());
 
 			return false;
@@ -725,9 +725,9 @@ class PHPSerial
 	// INTERNAL TOOLKIT -- {START}
 	//
 
-	protected function __ckOpened()
+	protected function _ckOpened()
 	{
-		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) {
+		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) {
 			throw new Kohana_Exception('Device must be opened', array());
 
 			return false;
@@ -736,9 +736,9 @@ class PHPSerial
 		return true;
 	}
 
-	protected function __ckClosed()
+	protected function _ckClosed()
 	{
-		if ($this->__dState === self::SERIAL_DEVICE_OPENED) 
+		if ($this->_dState === self::SERIAL_DEVICE_OPENED) 
 		{
 			throw new Kohana_Exception('Device must be closed', array());
 
@@ -748,7 +748,7 @@ class PHPSerial
 		return true;
 	}
 
-	protected function __exec($cmd, &$out = null)
+	protected function _exec($cmd, &$out = null)
 	{
 		$desc = array(
 			1 => array('pipe', 'w'),
