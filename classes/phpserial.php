@@ -600,7 +600,7 @@ class PHPSerial
 	 * @param string $str          string to be sent to the device
 	 * @param float  $waitForReply time to wait for the reply (in seconds)
 	 */
-	public function send_message($str, $waitForReply = 0.1)
+	public function send($str, $waitForReply = 0.1)
 	{
 		$this->__buffer .= $str;
 
@@ -609,7 +609,7 @@ class PHPSerial
 			$this->flush_serial();
 		}
 		usleep((int) ($waitForReply * 1000000));
-		return true;
+		return $this;
 	}
 
 	/**
@@ -619,7 +619,7 @@ class PHPSerial
 	 *                   if less characters are in the buffer)
 	 * @return string
 	 */
-	public function readPort($count = 0)
+	public function read($count = 0)
 	{
 		if ($this->__dState !== self::SERIAL_DEVICE_OPENED) 
 		{
