@@ -88,8 +88,8 @@ class bytearray
 	 */
 	public function as_hex()
 	{
-		$str;
-		foreach($this->data as $d)
+		$str = '';
+		foreach($this->_data as $d)
 		{
 			$str .= str_pad(dechex($d), 2, '0', STR_PAD_LEFT);
 		}
