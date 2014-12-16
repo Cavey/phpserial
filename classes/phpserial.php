@@ -55,6 +55,10 @@ class PHPSerial
 		if($device != NULL)
 		{
 			$this->set_device($device, $rate);
+			if( $this->_dState == self::SERIAL_DEVICE_SET )
+			{
+				$this->open();
+			}
 		}
 	}
 	//
@@ -150,14 +154,14 @@ class PHPSerial
 	 * Opens the device for reading and/or writing.
 	 *
 	 * @param  string $mode Opening mode : same parameter as fopen()
-	 * @return bool
+	 * @return object|bool
 	 */
 	public function open($mode = 'r+b')
 	{
 		if ($this->_dState === self::SERIAL_DEVICE_OPENED) 
 		{
 			// We don't throw an exception here because that would be stupid
-			return true;
+			return $this;
 		}
 
 		if ($this->_dState === self::SERIAL_DEVICE_NOTSET) 
@@ -178,7 +182,7 @@ class PHPSerial
 		{
 			stream_set_blocking($this->_dHandle, 0);
 			$this->_dState = self::SERIAL_DEVICE_OPENED;
-			return true;
+			return $this;
 		}
 
 		$this->_dHandle = null;
@@ -190,20 +194,20 @@ class PHPSerial
 	/**
 	 * Closes the device
 	 *
-	 * @return bool
+	 * @return object|bool
 	 */
 	public function close()
 	{
 		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) 
 		{
-			return true;
+			return $this;
 		}
 
 		if (fclose($this->_dHandle)) 
 		{
 			$this->_dHandle = null;
 			$this->_dState = self::SERIAL_DEVICE_SET;
-			return true;
+			return $this;
 		}
 
 		throw new Kohana_Exception('Unable to close the device', E_USER_ERROR);
@@ -277,7 +281,7 @@ class PHPSerial
 				);
 				return false;
 			}
-			return true;
+			return $this;
 		} 
 		else 
 		{
@@ -343,7 +347,7 @@ class PHPSerial
 
 		if ($ret === 0) 
 		{
-			return true;
+			return $this;
 		}
 
 		throw new Kohana_Exception('Unable to set parity : ' . $out[1], array());
@@ -398,7 +402,7 @@ class PHPSerial
 
 		if ($ret === 0) 
 		{
-			return true;
+			return $this;
 		}
 
 		throw new Kohana_Exception(
@@ -466,7 +470,7 @@ class PHPSerial
 
 		if ($ret === 0) 
 		{
-			return true;
+			return $this;
 		}
 
 		throw new Kohana_Exception(
@@ -529,13 +533,14 @@ class PHPSerial
 			);
 		}
 
-		if ($ret === 0) {
-			return true;
-		} else {
-			throw new Kohana_Exception(
-				'Unable to set flow control : ' . $out[1],
-				E_USER_ERROR
-			);
+		if ($ret === 0) 
+		{
+			return $this;
+		} 
+		else 
+		{
+			throw new Kohana_Exception(	'Unable to set flow control : ' . 
+				$out[1], array() );
 
 			return false;
 		}
@@ -574,7 +579,7 @@ class PHPSerial
 		} 
 		else 
 		{
-			return true;
+			return $this;
 		}
 	}
 
@@ -698,7 +703,7 @@ class PHPSerial
 		if (fwrite($this->_dHandle, $this->_buffer) !== false) 
 		{
 			$this->_buffer = '';
-			return true;
+			return $this;
 		} 
 		else 
 		{
@@ -719,7 +724,8 @@ class PHPSerial
 
 	protected function _ckOpened()
 	{
-		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) {
+		if ($this->_dState !== self::SERIAL_DEVICE_OPENED) 
+		{
 			throw new Kohana_Exception('Device must be opened', array());
 
 			return false;
